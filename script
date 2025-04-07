@@ -13,8 +13,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 320, 0, 400)  -- Adjusted size for better visibility
-frame.Position = UDim2.new(0.5, -160, 0.5, -200)  -- Centered GUI on screen
+frame.Size = UDim2.new(0, 320, 0, 400)
+frame.Position = UDim2.new(0.5, -160, 0.5, -200)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
 
@@ -51,7 +51,7 @@ selectedLabel.Text = "Selected Area: None"
 
 --// Scrolling Area List
 local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1, -20, 1, -155)  -- Adjusted size for better fit
+scroll.Size = UDim2.new(1, -20, 1, -155)
 scroll.Position = UDim2.new(0, 10, 0, 75)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
@@ -92,6 +92,17 @@ closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 18
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+--// Hover Label for Close Button
+local hoverLabel = Instance.new("TextLabel", frame)
+hoverLabel.Text = "This will fully destroy the GUI"
+hoverLabel.Size = UDim2.new(0, 220, 0, 20)
+hoverLabel.Position = UDim2.new(0, 0, 1, -140)
+hoverLabel.BackgroundTransparency = 1
+hoverLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+hoverLabel.Font = Enum.Font.Gotham
+hoverLabel.TextSize = 12
+hoverLabel.Visible = false  -- Initially hidden
 
 --// Vars
 local selectedArea = nil
@@ -225,6 +236,15 @@ closeBtn.MouseButton1Click:Connect(function()
     screenGui:Destroy()  -- Destroy the GUI when close button is clicked
     print("GUI closed.")  -- Debugging line
 end)
+
+--// Left Control to Toggle GUI
+local function toggleGui(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.LeftControl then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end
+
+game:GetService("UserInputService").InputBegan:Connect(toggleGui)
 
 --// Update Current Zone Initially
 updateCurrentZone()
