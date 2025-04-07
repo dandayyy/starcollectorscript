@@ -1,0 +1,237 @@
+--// Setup
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local collectStar = replicatedStorage:WaitForChild("Core"):WaitForChild("Remote"):WaitForChild("collectStar")
+local localStars = workspace:WaitForChild("LocalStars")
+
+--// GUI Setup
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "StarCollectorGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 320, 0, 400)  -- Adjusted size for better visibility
+frame.Position = UDim2.new(0.5, -160, 0.5, -200)  -- Centered GUI on screen
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+--// Title
+local title = Instance.new("TextLabel", frame)
+title.Text = "⭐ Star Collector"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+--// Current Zone Label
+local currentZoneLabel = Instance.new("TextLabel", frame)
+currentZoneLabel.Position = UDim2.new(0, 0, 0, 30)
+currentZoneLabel.Size = UDim2.new(1, 0, 0, 20)
+currentZoneLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+currentZoneLabel.BackgroundTransparency = 1
+currentZoneLabel.Font = Enum.Font.Gotham
+currentZoneLabel.TextSize = 14
+currentZoneLabel.Text = "Current Area: Loading..."
+
+--// Selected Area Label
+local selectedLabel = Instance.new("TextLabel", frame)
+selectedLabel.Position = UDim2.new(0, 0, 0, 50)
+selectedLabel.Size = UDim2.new(1, 0, 0, 20)
+selectedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+selectedLabel.BackgroundTransparency = 1
+selectedLabel.Font = Enum.Font.Gotham
+selectedLabel.TextSize = 14
+selectedLabel.Text = "Selected Area: None"
+
+--// Scrolling Area List
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, -20, 1, -155)  -- Adjusted size for better fit
+scroll.Position = UDim2.new(0, 10, 0, 75)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local UIListLayout = Instance.new("UIListLayout", scroll)
+UIListLayout.Padding = UDim.new(0, 5)
+
+--// Collect Button
+local collectBtn = Instance.new("TextButton", frame)
+collectBtn.Text = "Collect Selected"
+collectBtn.Size = UDim2.new(1, -20, 0, 30)
+collectBtn.Position = UDim2.new(0, 10, 1, -60)
+collectBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+collectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+collectBtn.Font = Enum.Font.Gotham
+collectBtn.TextSize = 14
+Instance.new("UICorner", collectBtn).CornerRadius = UDim.new(0, 6)
+
+--// Loop Collect Toggle
+local loopCollectToggle = Instance.new("TextButton", frame)
+loopCollectToggle.Text = "Loop Collect: Off"
+loopCollectToggle.Size = UDim2.new(1, -20, 0, 30)
+loopCollectToggle.Position = UDim2.new(0, 10, 1, -100)
+loopCollectToggle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+loopCollectToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+loopCollectToggle.Font = Enum.Font.Gotham
+loopCollectToggle.TextSize = 14
+Instance.new("UICorner", loopCollectToggle).CornerRadius = UDim.new(0, 6)
+
+--// Close Button
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Text = "X"
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0, 10)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+--// Vars
+local selectedArea = nil
+local loopingCollect = false
+local dragStart = nil
+local startPos = nil
+local dragging = false
+
+--// Function to Update Current Zone
+local function updateCurrentZone()
+    local zoneValue = player:WaitForChild("ServerData"):WaitForChild("Zone")
+    if zoneValue and zoneValue.Value ~= "" then
+        currentZoneLabel.Text = "Current Area: " .. zoneValue.Value
+        selectedArea = zoneValue.Value
+        selectedLabel.Text = "Selected Area: " .. selectedArea
+    else
+        currentZoneLabel.Text = "Current Area: No Zone Found"
+    end
+end
+
+--// Function to make the GUI draggable only when the mouse is pressed
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = frame.Position
+end
+
+local function stopDrag()
+    dragging = false  -- Stop dragging when the mouse button is released
+end
+
+--// Update the GUI position while dragging
+local function dragUpdate(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+--// Allow dragging from the title text (and the whole top area)
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        startDrag(input)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragUpdate(input)
+    end
+end)
+
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        stopDrag()
+    end
+end)
+
+--// Star Collector
+local function collectStarsFrom(areaName)
+    local areaFolder = localStars:FindFirstChild(areaName)
+    if not areaFolder then
+        warn("Area not found: " .. areaName)
+        return
+    end
+
+    for _, star in pairs(areaFolder:GetChildren()) do
+        if star:IsA("Model") or star:IsA("Part") then
+            local args = {
+                [1] = areaName,
+                [2] = star.Name
+            }
+            collectStar:FireServer(unpack(args))
+        end
+    end
+    print("✅ Collected all stars from:", areaName)
+end
+
+--// Area Buttons
+for _, folder in pairs(localStars:GetChildren()) do
+    if folder:IsA("Folder") then
+        local areaButton = Instance.new("TextButton", scroll)
+        areaButton.Text = folder.Name
+        areaButton.Size = UDim2.new(1, -10, 0, 28)
+        areaButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        areaButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        areaButton.Font = Enum.Font.Gotham
+        areaButton.TextSize = 14
+        Instance.new("UICorner", areaButton).CornerRadius = UDim.new(0, 6)
+
+        areaButton.MouseButton1Click:Connect(function()
+            selectedArea = folder.Name
+            selectedLabel.Text = "Selected Area: " .. selectedArea
+        end)
+    end
+end
+
+--// Update Scroll Canvas
+task.wait(0.1)
+scroll.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+
+--// Collect Button Click
+collectBtn.MouseButton1Click:Connect(function()
+    if selectedArea then
+        collectStarsFrom(selectedArea)
+    else
+        warn("No area selected!")
+    end
+end)
+
+--// Loop Collect Toggle Click
+loopCollectToggle.MouseButton1Click:Connect(function()
+    loopingCollect = not loopingCollect
+    if loopingCollect then
+        loopCollectToggle.Text = "Loop Collect: On"
+        loopCollectToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+        while loopingCollect do
+            if selectedArea then
+                collectStarsFrom(selectedArea)
+            end
+            wait(0.5)  -- Adjust wait time for speed (faster = smaller number)
+        end
+    else
+        loopCollectToggle.Text = "Loop Collect: Off"
+        loopCollectToggle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    end
+end)
+
+--// Close Button Click (Removes GUI)
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()  -- Destroy the GUI when close button is clicked
+    print("GUI closed.")  -- Debugging line
+end)
+
+--// Update Current Zone Initially
+updateCurrentZone()
+
+--// Listen for changes to the player's zone and update the GUI
+player:WaitForChild("ServerData"):WaitForChild("Zone").Changed:Connect(function()
+    updateCurrentZone()
+end)
+
+print("Star Collector GUI Loaded.")
